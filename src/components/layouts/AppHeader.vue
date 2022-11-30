@@ -1,5 +1,5 @@
 <template>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary" style="margin-bottom: 50px;">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-info" style="margin-bottom: 50px;">
         <div class="container-fluid">
          
 
@@ -19,7 +19,7 @@
                         <router-link class="nav-link" to="/register">Register</router-link>
                     </li>
                     <li class="nav-item">
-                        <router-link class="nav-link active" to="/home"  PostService v-if="login">
+                        <router-link class="nav-link active" to="/"  v-if="login" >
                             Home
                             <span class="visually-hidden">(current)</span>
                         </router-link>
@@ -64,7 +64,7 @@
     );
  
     if (response.data.status == "success") {
-        // remove access token from local storage
+
         localStorage.removeItem(this.$accessTokenKey)
  
         window.location.href = "/login"
@@ -75,8 +75,6 @@
  
             getUser: async function () {
                 const self = this
- 
-                // check if user is logged in
                 if (localStorage.getItem(this.$accessTokenKey)) {
                     const response = await axios.post(
                         this.$apiURL + "/getUser",
@@ -87,11 +85,9 @@
                     )
  
                     if (response.data.status == "success") {
-                        // user is logged in
                         this.$user = response.data.user
                     console.log(this.$user)
                     } else {
-                        // user is logged out
                         localStorage.removeItem(this.$accessTokenKey);
                     }
  

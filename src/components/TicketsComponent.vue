@@ -1,94 +1,174 @@
 <template>
-    <div class="container">
-      <h1>Latest posts</h1>
-      <div class="create-post">
-      <label for="create-post">Những gì bạn muốn nói...</label>
-      <input type="text" id="create-post" v-model="text" placeholder="Create a post">
-      <button v-on:click="createPost">Post!</button>
-      </div>
-      <hr>
-      <p class="error" v-if="error">{{ error }}</p>
-      <div class="posts-container">
-        <div class="post" 
-        v-for="(post, index) in posts"
-        v-bind:item="post"
-        v-bind:index="index"
-        v-bind:key="post._id"
-        >
-        {{`${post.createdAt.getDate()}/${post.createdAt.getMonth()}/${post.createdAt.getFullYear()}`}}
-        <p class="text">{{ post.text }}</p>
-      </div>
+  <div class="container">
+      <div class="row">
+          <div class="col-md-12">
+              <button type="button" class="bg-info" data-bs-toggle="modal" data-bs-target="#createTicketModal"
+              >Upload
+          </button>
+          
+          </div>
+      </div><br />
+      <div class="d-flex justify-content-center" v-if="loading">
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
     </div>
-    </div>
-  </template>
-  
-  <script>
-  import PostService from '../PostService';
-  
-  export default {
-    name: 'TicketsComponent',
-    data() {
-      return{
-        posts: [],
-        error: '',
-        text:''
-      }
-    },
-    async created() {
-      try{
-        this.posts = await PostService.getPosts();
-      } catch(err){
-  this.error = err.message;
-      }
-    },
-    methods: {
-      async createPost() {
-        await PostService.insertPost(this.text);
-        this.posts = await PostService.getPosts();
-      },
-      async deletePost(id) {
-        await PostService.deletePost(id);
-        this.posts = await PostService.getPosts();
-      },
-    }
-  }
-  </script>
-  
-  <!-- Add "scoped" attribute to limit CSS to this component only -->
-  <style scoped>
-  div.container{
-    max-width: 800px;
-    margin: 0 auto;
-  
-  }
-  p.error {
-    border: 1px solid red;
-    background-color: burlywood;
-    padding:10px;
-    margin-bottom: 15px;
-  }
-  div.post {
-    position: relative;
-    border:1px solid black;
-    background-color: black;
-    padding:10px 10px 30px 10px ;
-    margin-bottom: 15px;
-  }
-  div.reated-at {
-    position: absolute;
-    top:0;
-    left:0;
-    padding: 5px 15px 5px 15px;
-    background-color: darkgreen;
-    color: white;
-    font-size: 13px;
-  }
-  p.text {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 0;
+</div>
+<table class="table table-responsive table-bordered" id="tickets-table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Created by</th>
+            <th>Status</th>
+            <th>Updated at</th>
+        </tr>
+    </thead>
+ 
+    <tbody>
+        <tr v-for="ticket in tickets" v-bind:key="ticket._id">
+            <td v-text="ticket.title"></td>
+            <td v-text="ticket.createdBy.name"></td>
+            <td v-text="ticket.status.toUpperCase()"></td>
+            <td v-text="dateTimeInFormat(ticket.updatedAt)"></td>
+            
+        </tr>
+    </tbody>
+</table>
+<nav v-if="pages > 1">
+    <ul class="pagination">
+        <li v-for="page in pages" v-bind:class="'page-item ' + (page == pageNumber ? 'active' : '')">
+            <router-link class="page-link bg-info" v-bind:to="'/tickets/all/' + page" v-text="page" v-on:click="paginate(page)"></router-link>
+        </li>
+    </ul>
+</nav>
+  </div>
+  <div class="modal" id="createTicketModal" >
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title">Upload</h5>
+              
+          </div>
+
+          <div class="modal-body">
+              <form id="form-create-ticket" enctype="multipart/form-data" 
+          v-on:submit.prevent="createTicket">
+          <div class="form-group">
+              <label>Title</label>
+              <input type="text" name="title" class="form-control" required />
+          </div>
+          <br />
+          <div class="form-group">
+              <label>Description</label>
+              <textarea name="description" class="
+              form-control" required></textarea>
+          </div>
+          <br />
+          <div class="form-group">
+              <label>Attach screenshots</label>
+              <input type="file" multiple accept="image/*" name="images" class="form-control" />
+
+          </div>
+          <br />
+          
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">close</button>
+
+              <button type="submit" v-bind:disabled="creatingTicket" form="form-create-ticket" class="btn btn-primary" >Upload
+
+              <i class="fa fa-spinner fa-spin" v-if="creatingTicket"></i>
+              </button>
+          </div></form>
+          </div>
+
+      </div>
+  </div>
+  </div>
+   
+          
+         
+          
+         
+
     
+
+</template>
+
+<script>
+
+  import axios from "axios"
+  import swal from "sweetalert2"
+  const bootstrap = require('bootstrap')
+  export default {
+      name: "TicketsComponent",
+
+      data() {
+          return {
+              creatingTicket: false,
+              tickets: [],
+              loading: false,
+              pageNumber: this.$route.params.page ?? 1,
+pages: 0
+          }
+      },
+
+      methods: {
+        paginate: function (page) {
+    this.pageNumber = page
+    this.getData()
+},
+        getData: async function () {
+    this.loading = true
+    if(this.pageNumber == ""){
+      this.pageNumber = 1
+    }
+    const formData = new FormData()
+    formData.append("page", this.pageNumber)
+ 
+    const response = await axios.post(
+        this.$apiURL + "/tickets",
+        formData,
+        {
+            headers: this.$headers
+        }
+    )
+ 
+    this.loading = false
+ 
+    if (response.data.status == "success") {
+        this.tickets = response.data.tickets
+        this.pages = response.data.pages
+        this.pageNumber = response.data.pageNumber
+    } else {
+        swal.fire("Error", response.data.message, "error")
+    }
+},
+
+          createTicket: async function () {
+              this.creatingTicket = true
+
+              const form = event.target
+              const formData = new FormData(form)
+
+              const response = await axios.post(
+                  this.$apiURL + "/tickets/create",
+                  formData,
+                  {
+                      headers: this.$headers
+                  }
+              )
+
+              this.creatingTicket = false
+              swal.fire("Upload", response.data.message, response.data.status)
+
+              if (response.data.status == "success") {
+                  form.reset()
+                  this.tickets.unshift(response.data.ticket)
+              }
+          }
+      },
+      mounted: function () {
+    this.getData()
+}
+
   }
-  
-  </style>
-  
+</script>
