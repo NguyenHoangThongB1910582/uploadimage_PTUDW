@@ -17,19 +17,20 @@
     <thead>
         <tr>
             <th>Title</th>
+            <th>Description</th>
             <th>Created by</th>
-            <th>Status</th>
             <th>Updated at</th>
+            
         </tr>
     </thead>
  
     <tbody>
         <tr v-for="ticket in tickets" v-bind:key="ticket._id">
             <td v-text="ticket.title"></td>
+             <td v-text="ticket.description"></td>
             <td v-text="ticket.createdBy.name"></td>
-            <td v-text="ticket.status.toUpperCase()"></td>
             <td v-text="dateTimeInFormat(ticket.updatedAt)"></td>
-            
+           
         </tr>
     </tbody>
 </table>
@@ -45,7 +46,7 @@
   <div class="modal-dialog">
       <div class="modal-content">
           <div class="modal-header">
-              <h5 class="modal-title">Upload</h5>
+              <h5 class="modal-title">Notes</h5>
               
           </div>
 
@@ -63,12 +64,7 @@
               form-control" required></textarea>
           </div>
           <br />
-          <div class="form-group">
-              <label>Attach screenshots</label>
-              <input type="file" multiple accept="image/*" name="images" class="form-control" />
-
-          </div>
-          <br />
+         
           
           <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">close</button>
